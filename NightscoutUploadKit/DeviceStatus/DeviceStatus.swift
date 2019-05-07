@@ -49,8 +49,8 @@ public struct DeviceStatus {
             rval["radioAdapter"] = radioAdapter.dictionaryRepresentation
         }
         
-        if let overrideStatus = overrideStatus {
-            rval["overrideStatus"] = overrideStatus.dictionaryRepresentation
+        if let override = overrideStatus {
+            rval["override"] = override.dictionaryRepresentation
         }
 
         return rval
