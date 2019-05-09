@@ -1,2 +1,2 @@
-github "kdisimone/LoopKit" "production"
+github "kenstack/LoopKit" "negiobreduce"
 github "maxkonovalov/MKRingProgressView" ~> 2.2
