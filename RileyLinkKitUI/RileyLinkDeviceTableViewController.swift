@@ -10,14 +10,15 @@ import UIKit
 import LoopKitUI
 import RileyLinkBLEKit
 import RileyLinkKit
+import os.log
 
 let CellIdentifier = "Cell"
 
 public class RileyLinkDeviceTableViewController: UITableViewController {
 
-    public let device: RileyLinkDevice
+    private let log = OSLog(category: "RileyLinkDeviceTableViewController")
 
-    private var deviceState: DeviceState
+    public let device: RileyLinkDevice
 
     private var bleRSSI: Int?
 
@@ -70,7 +71,6 @@ public class RileyLinkDeviceTableViewController: UITableViewController {
 
     public init(device: RileyLinkDevice) {
         self.device = device
-        self.deviceState = DeviceState(lastTuned: nil, lastValidFrequency: nil)
 
         super.init(style: .grouped)
 
@@ -108,7 +108,9 @@ public class RileyLinkDeviceTableViewController: UITableViewController {
                 DispatchQueue.main.async {
                     self.uptime = statistics.uptime
                 }
-            } catch { }
+            } catch let error {
+                self.log.error("Failed to get stats for uptime: %{public}@", String(describing: error))
+            }
         }
     }
     
@@ -121,7 +123,7 @@ public class RileyLinkDeviceTableViewController: UITableViewController {
                     self.frequency = frequency
                 }
             } catch let error {
-                print("Error: \(error)")
+                self.log.error("Failed to get base frequency: %{public}@", String(describing: error))
             }
         }
         

@@ -10,16 +10,22 @@ import Foundation
 
 
 extension Data {
-    func to<T: FixedWidthInteger>(_: T.Type) -> T {
-        return self.withUnsafeBytes { (bytes: UnsafePointer<T>) in
-            return T(littleEndian: bytes.pointee)
-        }
+    private func toDefaultEndian<T: FixedWidthInteger>(_: T.Type) -> T {
+        return self.withUnsafeBytes({ (rawBufferPointer: UnsafeRawBufferPointer) -> T in
+            let bufferPointer = rawBufferPointer.bindMemory(to: T.self)
+            guard let pointer = bufferPointer.baseAddress else {
+                return 0
+            }
+            return T(pointer.pointee)
+        })
     }
 
-    func toBigEndian<T: FixedWidthInteger>(_: T.Type) -> T {
-        return self.withUnsafeBytes {
-            return T(bigEndian: $0.pointee)
-        }
+    func to<T: FixedWidthInteger>(_ type: T.Type) -> T {
+        return T(littleEndian: toDefaultEndian(type))
+    }
+
+    func toBigEndian<T: FixedWidthInteger>(_ type: T.Type) -> T {
+        return T(bigEndian: toDefaultEndian(type))
     }
 
     mutating func append<T: FixedWidthInteger>(_ newElement: T) {
@@ -34,6 +40,11 @@ extension Data {
 
     init<T: FixedWidthInteger>(_ value: T) {
         var value = value.littleEndian
+        self.init(buffer: UnsafeBufferPointer(start: &value, count: 1))
+    }
+    
+    init<T: FixedWidthInteger>(bigEndian value: T) {
+        var value = value.bigEndian
         self.init(buffer: UnsafeBufferPointer(start: &value, count: 1))
     }
 }

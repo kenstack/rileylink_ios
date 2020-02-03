@@ -6,18 +6,18 @@
 //
 
 
-enum RileyLinkDeviceError: Error {
+public enum RileyLinkDeviceError: Error {
     case peripheralManagerError(PeripheralManagerError)
     case invalidInput(String)
     case writeSizeLimitExceeded(maxLength: Int)
     case invalidResponse(Data)
     case responseTimeout
-    case unsupportedCommand(RileyLinkCommand)
+    case unsupportedCommand(String)
 }
 
 
 extension RileyLinkDeviceError: LocalizedError {
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .peripheralManagerError(let error):
             return error.errorDescription
@@ -26,7 +26,7 @@ extension RileyLinkDeviceError: LocalizedError {
         case .invalidResponse(let response):
             return String(format: LocalizedString("Response %@ is invalid", comment: "Invalid response error description (1: response)"), String(describing: response))
         case .writeSizeLimitExceeded(let maxLength):
-            return String(format: LocalizedString("Data exceededs maximum size of %@ bytes", comment: "Write size limit exceeded error description (1: size limit)"), NumberFormatter.localizedString(from: NSNumber(value: maxLength), number: .none))
+            return String(format: LocalizedString("Data exceeded maximum size of %@ bytes", comment: "Write size limit exceeded error description (1: size limit)"), NumberFormatter.localizedString(from: NSNumber(value: maxLength), number: .none))
         case .responseTimeout:
             return LocalizedString("Pump did not respond in time", comment: "Response timeout error description")
         case .unsupportedCommand(let command):
@@ -34,7 +34,7 @@ extension RileyLinkDeviceError: LocalizedError {
         }
     }
 
-    var failureReason: String? {
+    public var failureReason: String? {
         switch self {
         case .peripheralManagerError(let error):
             return error.failureReason
@@ -43,7 +43,7 @@ extension RileyLinkDeviceError: LocalizedError {
         }
     }
 
-    var recoverySuggestion: String? {
+    public var recoverySuggestion: String? {
         switch self {
         case .peripheralManagerError(let error):
             return error.recoverySuggestion

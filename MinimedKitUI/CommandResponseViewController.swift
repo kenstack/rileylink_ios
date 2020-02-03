@@ -177,7 +177,7 @@ extension CommandResponseViewController {
         return T { (completionHandler) -> String in
             var byteArray = [UInt8](repeating: 0, count: 16)
             (device.peripheralIdentifier as NSUUID).getBytes(&byteArray)
-            let watchdogID = Data(bytes: byteArray[0..<3])
+            let watchdogID = Data(byteArray[0..<3])
 
             ops?.runSession(withName: "Change watchdog marriage profile", using: device) { (session) in
                 let response: String
@@ -283,6 +283,7 @@ extension CommandResponseViewController {
                     str += String(format: LocalizedString("Battery: %1$@ volts\n", comment: "The format string describing pump battery voltage: (1: battery voltage)"), measurementFormatter.string(from: status.batteryVolts))
                     str += String(format: LocalizedString("Suspended: %1$@\n", comment: "The format string describing pump suspended state: (1: suspended)"), String(describing: status.suspended))
                     str += String(format: LocalizedString("Bolusing: %1$@\n", comment: "The format string describing pump bolusing state: (1: bolusing)"), String(describing: status.bolusing))
+                    
                     response = str
                 } catch let error {
                     response = String(describing: error)
@@ -297,23 +298,12 @@ extension CommandResponseViewController {
         }
     }
 
-    static func tuneRadio(ops: PumpOps?, device: RileyLinkDevice, current: Measurement<UnitFrequency>?, measurementFormatter: MeasurementFormatter) -> T {
+    static func tuneRadio(ops: PumpOps?, device: RileyLinkDevice, measurementFormatter: MeasurementFormatter) -> T {
         return T { (completionHandler) -> String in
             ops?.runSession(withName: "Tune pump", using: device) { (session) in
                 let response: String
                 do {
-                    let scanResult = try session.tuneRadio(current: nil)
-
-                    NotificationCenter.default.post(
-                        name: .DeviceStateDidChange,
-                        object: device,
-                        userInfo: [
-                            RileyLinkDevice.notificationDeviceStateKey: DeviceState(
-                                lastTuned: Date(),
-                                lastValidFrequency: scanResult.bestFrequency
-                            )
-                        ]
-                    )
+                    let scanResult = try session.tuneRadio()
 
                     var resultDict: [String: Any] = [:]
 

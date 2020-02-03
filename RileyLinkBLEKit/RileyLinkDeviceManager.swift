@@ -7,14 +7,18 @@
 
 import CoreBluetooth
 import os.log
+import LoopKit
 
 
 public class RileyLinkDeviceManager: NSObject {
     private let log = OSLog(category: "RileyLinkDeviceManager")
 
+    // Isolated to centralQueue
     private var central: CBCentralManager!
 
-    private let centralQueue = DispatchQueue(label: "com.rileylink.RileyLinkBLEKit.BluetoothManager.centralQueue", qos: .utility)
+    private let centralQueue = DispatchQueue(label: "com.rileylink.RileyLinkBLEKit.BluetoothManager.centralQueue", qos: .unspecified)
+
+    internal let sessionQueue = DispatchQueue(label: "com.rileylink.RileyLinkBLEKit.RileyLinkDeviceManager.sessionQueue", qos: .unspecified)
 
     // Isolated to centralQueue
     private var devices: [RileyLinkDevice] = [] {
@@ -34,16 +38,18 @@ public class RileyLinkDeviceManager: NSObject {
 
         super.init()
 
-        central = CBCentralManager(
-            delegate: self,
-            queue: centralQueue,
-            options: [
-                CBCentralManagerOptionRestoreIdentifierKey: "com.rileylink.CentralManager"
-            ]
-        )
+        centralQueue.sync {
+            central = CBCentralManager(
+                delegate: self,
+                queue: centralQueue,
+                options: [
+                    CBCentralManagerOptionRestoreIdentifierKey: "com.rileylink.CentralManager"
+                ]
+            )
+        }
     }
 
-    // MARK: - Configuration. Not thread-safe.
+    // MARK: - Configuration
 
     public var idleListeningEnabled: Bool {
         if case .disabled = idleListeningState {
@@ -53,22 +59,27 @@ public class RileyLinkDeviceManager: NSObject {
         }
     }
 
-    public var idleListeningState: RileyLinkDevice.IdleListeningState = .disabled {
-        didSet {
-            let newState = self.idleListeningState
-
+    public var idleListeningState: RileyLinkDevice.IdleListeningState {
+        get {
+            return lockedIdleListeningState.value
+        }
+        set {
+            lockedIdleListeningState.value = newValue
             centralQueue.async {
                 for device in self.devices {
-                    device.setIdleListeningState(newState)
+                    device.setIdleListeningState(newValue)
                 }
             }
         }
     }
+    private let lockedIdleListeningState = Locked(RileyLinkDevice.IdleListeningState.disabled)
 
-    public var timerTickEnabled = true {
-        didSet {
-            let newValue = timerTickEnabled
-
+    public var timerTickEnabled: Bool {
+        get {
+            return lockedTimerTickEnabled.value
+        }
+        set {
+            lockedTimerTickEnabled.value = newValue
             centralQueue.async {
                 for device in self.devices {
                     device.setTimerTickEnabled(newValue)
@@ -76,6 +87,7 @@ public class RileyLinkDeviceManager: NSObject {
             }
         }
     }
+    private let lockedTimerTickEnabled = Locked(true)
 }
 
 
@@ -150,7 +162,7 @@ extension RileyLinkDeviceManager {
         if let device = device {
             device.manager.peripheral = peripheral
         } else {
-            device = RileyLinkDevice(peripheralManager: PeripheralManager(peripheral: peripheral, configuration: .rileyLink, centralManager: central))
+            device = RileyLinkDevice(peripheralManager: PeripheralManager(peripheral: peripheral, configuration: .rileyLink, centralManager: central, queue: sessionQueue))
             device.setTimerTickEnabled(timerTickEnabled)
             device.setIdleListeningState(idleListeningState)
 
@@ -189,7 +201,7 @@ extension Array where Element == RileyLinkDevice {
     }
 
     mutating func deprioritize(_ element: Element) {
-        if let index = self.index(where: { $0 === element }) {
+        if let index = self.firstIndex(where: { $0 === element }) {
             self.swapAt(index, self.count - 1)
         }
     }

@@ -8,7 +8,7 @@
 import CoreBluetooth
 
 
-enum PeripheralManagerError: Error {
+public enum PeripheralManagerError: Error {
     case cbPeripheralError(Error)
     case notReady
     case timeout
@@ -17,20 +17,20 @@ enum PeripheralManagerError: Error {
 
 
 extension PeripheralManagerError: LocalizedError {
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .cbPeripheralError(let error):
             return error.localizedDescription
         case .notReady:
-            return LocalizedString("Peripheral isnʼt connected", comment: "Not ready error description")
+            return LocalizedString("RileyLink is not connected", comment: "Not ready error description")
         case .timeout:
-            return LocalizedString("Peripheral did not respond in time", comment: "Timeout error description")
+            return LocalizedString("RileyLink did not respond in time", comment: "Timeout error description")
         case .unknownCharacteristic:
             return LocalizedString("Unknown characteristic", comment: "Error description")
         }
     }
 
-    var failureReason: String? {
+    public var failureReason: String? {
         switch self {
         case .cbPeripheralError(let error as NSError):
             return error.localizedFailureReason
@@ -41,7 +41,7 @@ extension PeripheralManagerError: LocalizedError {
         }
     }
 
-    var recoverySuggestion: String? {
+    public var recoverySuggestion: String? {
         switch self {
         case .cbPeripheralError(let error as NSError):
             return error.localizedRecoverySuggestion

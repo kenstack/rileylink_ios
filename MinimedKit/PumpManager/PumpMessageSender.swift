@@ -34,7 +34,7 @@ protocol PumpMessageSender {
     ///   - retryCount: The number of times to repeat the send & listen sequence
     /// - Returns: The packet reply
     /// - Throws: LocalizedError
-    func sendAndListen(_ data: Data, repeatCount: Int, timeout: TimeInterval, retryCount: Int) throws -> RFPacket?
+    func sendAndListen(_ data: Data, repeatCount: Int, timeout: TimeInterval, retryCount: Int) throws -> RFPacket
 
     /// - Throws: LocalizedError
     func listen(onChannel channel: Int, timeout: TimeInterval) throws -> RFPacket?
@@ -73,6 +73,7 @@ extension PumpMessageSender {
     ///     - PumpOpsError.crosstalk
     ///     - PumpOpsError.deviceError
     ///     - PumpOpsError.noResponse
+    ///     - PumpOpsError.pumpError
     ///     - PumpOpsError.unexpectedResponse
     ///     - PumpOpsError.unknownResponse
     func getResponse<T: MessageBody>(to message: PumpMessage, responseType: MessageType = .pumpAck, repeatCount: Int = 0, timeout: TimeInterval = standardPumpResponseWindow, retryCount: Int = 3) throws -> T {

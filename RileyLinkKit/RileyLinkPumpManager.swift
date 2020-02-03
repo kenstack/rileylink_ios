@@ -5,6 +5,7 @@
 //  Copyright © 2018 LoopKit Authors. All rights reserved.
 //
 
+import LoopKit
 import RileyLinkBLEKit
 
 open class RileyLinkPumpManager {
@@ -14,30 +15,24 @@ open class RileyLinkPumpManager {
         
         self.rileyLinkDeviceProvider = rileyLinkDeviceProvider
         self.rileyLinkConnectionManager = rileyLinkConnectionManager
+        self.rileyLinkConnectionManagerState = rileyLinkConnectionManager?.state
         
         // Listen for device notifications
         NotificationCenter.default.addObserver(self, selector: #selector(receivedRileyLinkPacketNotification(_:)), name: .DevicePacketReceived, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(receivedRileyLinkTimerTickNotification(_:)), name: .DeviceTimerDidTick, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(deviceStateDidChange(_:)), name: .DeviceStateDidChange, object: nil)
     }
     
     /// Manages all the RileyLinks - access to management is optional
     public let rileyLinkConnectionManager: RileyLinkConnectionManager?
-    
+
+    // TODO: Not thread-safe
     open var rileyLinkConnectionManagerState: RileyLinkConnectionManagerState?
     
     /// Access to rileylink devices
     public let rileyLinkDeviceProvider: RileyLinkDeviceProvider
-    
-    // TODO: Evaluate if this is necessary
-    public let queue = DispatchQueue(label: "com.loopkit.RileyLinkPumpManager", qos: .utility)
 
-    /// Isolated to queue
     // TODO: Put this on each RileyLinkDevice?
-    private var lastTimerTick: Date = .distantPast
-
-    // TODO: Isolate to queue
-    open var deviceStates: [UUID: DeviceState] = [:]
+    private var lastTimerTick = Locked(Date.distantPast)
 
     /// Called when one of the connected devices receives a packet outside of a session
     ///
@@ -54,8 +49,7 @@ open class RileyLinkPumpManager {
         return [
             "## RileyLinkPumpManager",
             "rileyLinkConnectionManager: \(String(reflecting: rileyLinkConnectionManager))",
-            "lastTimerTick: \(String(describing: lastTimerTick))",
-            "deviceStates: \(String(reflecting: deviceStates))",
+            "lastTimerTick: \(String(describing: lastTimerTick.value))",
             "",
             String(reflecting: rileyLinkDeviceProvider),
         ].joined(separator: "\n")
@@ -64,18 +58,6 @@ open class RileyLinkPumpManager {
 
 // MARK: - RileyLink Updates
 extension RileyLinkPumpManager {
-    @objc private func deviceStateDidChange(_ note: Notification) {
-        guard
-            let device = note.object as? RileyLinkDevice,
-            let deviceState = note.userInfo?[RileyLinkDevice.notificationDeviceStateKey] as? RileyLinkKit.DeviceState
-        else {
-            return
-        }
-
-        queue.async {
-            self.deviceStates[device.peripheralIdentifier] = deviceState
-        }
-    }
 
     /**
      Called when a new idle message is received by the RileyLink.
@@ -91,6 +73,8 @@ extension RileyLinkPumpManager {
             return
         }
 
+        device.assertOnSessionQueue()
+
         self.device(device, didReceivePacket: packet)
     }
 
@@ -99,12 +83,8 @@ extension RileyLinkPumpManager {
             return
         }
 
-        // TODO: Do we need a queue?
-        queue.async {
-            self.lastTimerTick = Date()
-
-            self.deviceTimerDidTick(device)
-        }
+        self.lastTimerTick.value = Date()
+        self.deviceTimerDidTick(device)
     }
     
     open func connectToRileyLink(_ device: RileyLinkDevice) {

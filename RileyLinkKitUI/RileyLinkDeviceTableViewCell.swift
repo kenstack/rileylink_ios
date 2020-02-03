@@ -13,7 +13,7 @@ public class RileyLinkDeviceTableViewCell: UITableViewCell {
     
     public var connectSwitch: UISwitch?
 
-    public override init(style: UITableViewCellStyle, reuseIdentifier: String?) {
+    public override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: .value1, reuseIdentifier: reuseIdentifier)
 
         setup()
@@ -72,6 +72,8 @@ public class RileyLinkDeviceTableViewCell: UITableViewCell {
                 connectSwitch?.isOn = false
                 connectSwitch?.isEnabled = true
             case .disconnecting:
+                fallthrough
+            @unknown default:
                 connectSwitch?.isOn = false
                 connectSwitch?.isEnabled = false
             }
