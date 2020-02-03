@@ -1,2 +1,2 @@
-github "LoopKit/LoopKit" ~> 3.0
+github "kenstack/LoopKit" "ken-updates"
 github "LoopKit/MKRingProgressView" "appex-safe"
